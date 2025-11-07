@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess in 5 (Country Edition)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%22 y=%2255%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2280%22>🌍</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-medium: #16213e;
+            --bg-light: #0f3460;
+            --accent-primary: #e94560;
+            --accent-secondary: #f9ed69;
+            --text-light: #ffffff;
+            --text-dark: #e0e0e0;
+            --text-correct: #33ff99;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--bg-medium);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 2px solid var(--bg-light);
+        }
+
+        /* --- Screen Styling --- */
+        .screen {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 2rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- High Score Trophy --- */
+        .high-score-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background-color: var(--bg-light);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .trophy-icon {
+            width: 28px;
+            height: 28px;
+            fill: var(--accent-secondary);
+        }
+
+        .high-score-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        #high-score-value, #end-high-score-value {
+            color: var(--accent-secondary);
+            font-weight: 700;
+        }
+        
+        /* --- Start Screen --- */
+        .game-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-shadow: 0 0 10px var(--accent-primary);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .game-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        /* --- Game Screen --- */
+        .game-stats-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .game-stat {
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .game-stat span {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--accent-secondary);
+        }
+
+        #clue-list {
+            list-style: none;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        #clue-list li {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            text-align: center;
+            animation: popIn 0.3s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px); /* Start slightly down */
+        }
+
+        /* Staggered animation for clues */
+        #clue-list li.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #clue-list li:nth-child(1) { transition-delay: 0.1s; }
+        #clue-list li:nth-child(2) { transition-delay: 0.2s; }
+        #clue-list li:nth-child(3) { transition-delay: 0.3s; }
+        #clue-list li:nth-child(4) { transition-delay: 0.4s; }
+        #clue-list li:nth-child(5) { transition-delay: 0.5s; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #guess-form {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #guess-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--bg-light);
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+        }
+
+        #guess-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        #message-area {
+            height: 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+        .message-wrong { color: var(--accent-primary); }
+        .message-correct { color: var(--text-correct); }
+
+        /* --- End Screen --- */
+        #end-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        #end-score-container {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #end-score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+        }
+
+        #correct-answer-text {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin-bottom: 2rem;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: var(--text-light);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #d43a53;
+            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+        }
+        .btn-primary:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+        .btn-secondary:hover {
+            background-color: #1a4a8a;
+        }
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+        
+        /* --- Confetti --- */
+        .confetti {
+            position: fixed;
+            top: -10px;
+            width: 10px;
+            height: 10px;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: confetti-fall 4s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(0) rotateZ(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotateZ(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .game-container {
+                border-radius: 0;
+                min-height: 100vh;
+                border: none;
+            }
+            .screen {
+                padding: 2rem 1.5rem;
+            }
+            .game-title {
+                font-size: 2rem;
+            }
+            .game-stats-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            #guess-form {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+
+        <!-- ===== Start Screen ===== -->
+        <div class="screen active" id="start-screen">
+            <div class="high-score-container" id="start-high-score-box">
+                <!-- Trophy SVG -->
+                <svg class="trophy-icon" id="start-trophy" style="display: none;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 21C17 17.134 14.3137 14 10.5 14C6.68629 14 4 17.134 4 21H17ZM17 21C18.6569 21 20 19.6569 20 18V16C21.6569 16 23 14.6569 23 13V11C23 9.34315 21.6569 8 20 8V6C20 4.34315 18.6569 3 17 3V2C17 1.44772 16.5523 1 16 1H5C4.44772 1 4 1.44772 4 2V3C2.34315 3 1 4.34315 1 6V8C-0.656854 8 -2 9.34315 -2 11V13C-2 14.6569 -0.656854 16 1 16V18C1 19.6569 2.34315 21 4 21H17Z" fill="#f9ed69"/>
+                </svg>
+                <div class="high-score-text">High Score: <span id="high-score-value">0</span></div>
+            </div>
+            <h1 class="game-title">Guess in 5</h1>
+            <p class="game-subtitle">Country Edition</p>
+            <button class="btn btn-primary" id="start-btn">Start Game</button>
+        </div>
+
+        <!-- ===== Game Screen ===== -->
+        <div class="screen" id="game-screen">
+            <div class="game-stats-container">
+                <div class="game-stat">Score: <span id="current-score-value">0</span></div>
+                <div class="game-stat">Chances Left: <span id="chances-value">3</span></div>
+            </div>
+
+            <h2 class="game-subtitle" id="game-question-title">Here are your 5 clues:</h2>
+            <ul id="clue-list">
+                <!-- Clues will be injected by JS -->
+            </ul>
+            <form id="guess-form">
+                <input type="text" id="guess-input" placeholder="Enter country name..." autocomplete="off">
+                <button type="submit" class="btn btn-primary" id="guess-btn">Guess</button>
+            </form>
+            <div id="message-area"></div>
+        </div>
+
+        <!-- ===== End Screen ===== -->
+        <div class="screen" id="end-screen">
+            <h1 id="end-title">Game Over!</h1>
+            
+            <div id="end-score-container">
+                Your Final Score: <span id="end-score-value">0</span>
+            </div>
+
+            <div class="high-score-container" id="end-high-score-box">
+                <!-- Trophy SVG -->
+                <svg class="trophy-icon" id="end-trophy" style="display: none;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 21C17 17.134 14.3137 14 10.5 14C6.68629 14 4 17.134 4 21H17ZM17 21C18.6569 21 20 19.6569 20 18V16C21.6569 16 23 14.6569 23 13V11C23 9.34315 21.6569 8 20 8V6C20 4.34315 18.6569 3 17 3V2C17 1.44772 16.5523 1 16 1H5C4.44772 1 4 1.44772 4 2V3C2.34315 3 1 4.34315 1 6V8C-0.656854 8 -2 9.34315 -2 11V13C-2 14.6569 -0.656854 16 1 16V18C1 19.6569 2.34315 21 4 21H17Z" fill="#f9ed69"/>
+                </svg>
+                <div class="high-score-text">High Score: <span id="end-high-score-value">0</span></div>
+            </div>
+
+            <p id="correct-answer-text"></p>
+            <button class="btn btn-secondary" id="rematch-btn">Play Again</button>
+        </div>
+
+    </div>
+
+    <!-- 
+      --- GAME DATA SCRIPT ---
+      This block contains all the country data, as requested,
+      separate from the main game logic.
+    -->
+    <script id="game-data">
+        const countriesData = [
+            { country: "Japan", clues: ["Island nation in East Asia.", "Capital is Tokyo.", "Famous for cherry blossoms, sushi, and anime.", "Mount Fuji is its highest peak.", "Known as the 'Land of the Rising Sun'."] },
+            { country: "Brazil", clues: ["Largest country in South America.", "Official language is Portuguese.", "Famous for the Amazon Rainforest and Carnival.", "Christ the Redeemer statue is a famous landmark.", "Won the FIFA World Cup 5 times."] },
+            { country: "Egypt", clues: ["Connects Africa and Asia.", "Home to the ancient Pyramids of Giza.", "The Nile River flows through it.", "Ancient writing system was hieroglyphics.", "Capital city is Cairo."] },
+            { country: "Australia", clues: ["Both a continent and a country.", "Home to kangaroos and koalas.", "The Great Barrier Reef is off its coast.", "Capital is Canberra, largest city is Sydney.", "Native inhabitants are the Aboriginal peoples."] },
+            { country: "Canada", clues: ["Second-largest country in the world.", "A red maple leaf is on its flag.", "Known for maple syrup, ice hockey, and poutine.", "Official languages are English and French.", "Shares the world's longest land border with the USA."] },
+            { country: "India", clues: ["Large peninsula in South Asia.", "The Taj Mahal is in the city of Agra.", "World's most populous democracy.", "Known for Bollywood, yoga, and spicy cuisine.", "Capital is New Delhi."] },
+            { country: "Italy", clues: ["European country shaped like a boot.", "Capital, Rome, is home to the Colosseum.", "Famous for pasta, pizza, and Renaissance art.", "The Leaning Tower of Pisa is a landmark.", "Vatican City is an independent state within its capital."] },
+            { country: "France", clues: ["Located in Western Europe.", "The Eiffel Tower is its most famous monument.", "Capital, Paris, is known for the Louvre Museum.", "Renowned for wine, cheese, and cuisine.", "National motto is 'Liberté, Égalité, Fraternité'."] },
+            { country: "Mexico", clues: ["Country in North America, south of the USA.", "Known for Aztec and Mayan civilizations.", "Chichen Itza is a famous ruin.", "Cuisine includes tacos, enchiladas, and guacamole.", "Spanish is the national language."] },
+            { country: "South Africa", clues: ["Located at the southernmost tip of its continent.", "Known for Nelson Mandela and apartheid history.", "Table Mountain overlooks Cape Town.", "Kruger National Park is a famous safari destination.", "Has three capital cities."] },
+            { country: "Greece", clues: ["Located in Southeastern Europe.", "Known as the birthplace of democracy and philosophy.", "Famous for the Acropolis and Parthenon in Athens.", "Consists of thousands of islands, including Santorini.", "The ancient Olympic Games originated here."] },
+            { country: "Argentina", clues: ["Located in the southern half of South America.", "Famous for the Tango dance.", "Its capital is Buenos Aires.", "The Andes mountains form its western border.", "Known for its beef and 'Gaucho' culture."] },
+            { country: "China", clues: ["Most populous country in the world (or 2nd most).", "Home to the Great Wall.", "Its capital is Beijing.", "Giant Pandas are native to this country.", "Famous for inventions like paper, printing, and gunpowder."] },
+            { country: "United Kingdom", clues: ["An island nation in northwestern Europe.", "Comprised of England, Scotland, Wales, and Northern Ireland.", "Its capital, London, has the Big Ben clock tower.", "Famous for Shakespeare, The Beatles, and tea.", "It is a constitutional monarchy with a parliament."] },
+            { country: "Russia", clues: ["World's largest country by land area.", "Spans both Eastern Europe and Northern Asia.", "Its capital, Moscow, is home to the Kremlin.", "Famous for ballet, vodka, and nesting dolls (Matryoshka).", "The Trans-Siberian Railway crosses the country."] },
+            { country: "Germany", clues: ["A major country in Central Europe.", "Its capital is Berlin, known for the Brandenburg Gate.", "Famous for its cars (BMW, Mercedes), beer (Oktoberfest), and castles.", "The Black Forest is a famous region here.", "Known for composers like Bach and Beethoven."] },
+            { country: "Thailand", clues: ["A kingdom in Southeast Asia.", "Its capital is Bangkok, known for ornate temples.", "Famous for its spicy food, floating markets, and tuk-tuks.", "It's known as the 'Land of Smiles'.", "It was never colonized by a European power."] },
+            { country: "Spain", clues: ["Located on the Iberian Peninsula in southwestern Europe.", "Its capital is Madrid.", "Famous for Flamenco music, paella, and La Sagrada Família.", "It is a kingdom with a royal family.", "The 'Running of the Bulls' is a famous festival."] },
+            { country: "Peru", clues: ["A country in western South America.", "Home to the ancient Incan city of Machu Picchu.", "The Andes mountains run through it.", "Its capital is Lima.", "The Amazon rainforest covers a large part of the country."] },
+            { country: "Ireland", clues: ["An island in the North Atlantic, west of Great Britain.", "Known as the 'Emerald Isle'.", "Its capital is Dublin.", "Famous for St. Patrick's Day, Guinness, and shamrocks.", "Has a rich history of Celtic culture and mythology."] },
+            { country: "New Zealand", clues: ["An island country in the southwestern Pacific Ocean.", "Consists of two main landmasses (North and South Island).", "Famous for its 'Kiwi' bird and 'All Blacks' rugby team.", "The 'Lord of the Rings' movies were filmed here.", "The indigenous Māori people are a key part of its culture."] },
+            { country: "Turkey", clues: ["A transcontinental country, mostly in Asia, partly in Europe.", "Its largest city, Istanbul, straddles two continents.", "Famous for its kebabs, Turkish delight, and bazaars.", "The ancient city of Troy is located here.", "Cappadocia is known for its 'fairy chimneys' and hot air balloons."] },
+            { country: "Morocco", clues: ["A kingdom in North Africa.", "Its capital is Rabat, but its largest city is Casablanca.", "Known for its souks (markets), tagine, and mint tea.", "The Atlas Mountains run through the country.", "It borders both the Atlantic Ocean and the Mediterranean Sea."] },
+            { country: "Norway", clues: ["A Scandinavian country in Northern Europe.", "Famous for its deep fjords, mountains, and coastline.", "Known for Vikings, salmon, and the Northern Lights.", "Its capital is Oslo.", "It is a constitutional monarchy."] },
+            { country: "Switzerland", clues: ["A landlocked, mountainous country in Central Europe.", "Known for its neutrality, banking, and fine watches.", "Famous for the Alps, chocolate, and cheese (fondue).", "It has four official languages.", "Cities include Zürich, Geneva, and Bern (capital)."] },
+            { country: "Vietnam", clues: ["A long, narrow country in Southeast Asia.", "Its capital is Hanoi, and its largest city is Ho Chi Minh City.", "Famous for Phở (noodle soup) and its conical hats (Nón lá).", "Ha Long Bay, with its limestone islands, is a UNESCO site.", "It has a long coastline on the South China Sea."] },
+            { country: "Kenya", clues: ["An East African country.", "Its capital is Nairobi.", "Famous for wildlife safaris in parks like the Maasai Mara.", "The Great Rift Valley runs through it.", "Swahili is one of its official languages."] },
+            { country: "Portugal", clues: ["A country in southwestern Europe, bordering Spain.", "Its capital is Lisbon.", "Famous for Port wine, cork production, and Fado music.", "It was a major colonial empire, with territories like Brazil.", "Known for its explorers like Vasco da Gama."] },
+            { country: "Saudi Arabia", clues: ["A large kingdom in the Middle East.", "Home to Islam's two holiest cities, Mecca and Medina.", "Its capital is Riyadh.", "The economy is dominated by its vast oil reserves.", "A large portion of the country is desert (the Rub' al Khali)."] },
+            { country: "Chile", clues: ["A long, narrow country on the western edge of South America.", "Its capital is Santiago.", "It includes Easter Island, famous for its Moai statues.", "The Atacama Desert in the north is one of the world's driest.", "It is a major producer of copper and wine."] },
+            { country: "Sweden", clues: ["A Scandinavian country in Northern Europe.", "Its capital is Stockholm.", "Famous for IKEA, ABBA, and Volvo.", "Known for its 'Fika' (coffee and cake break) culture.", "It is a constitutional monarchy."] },
+            { country: "Cuba", clues: ["An island nation in the Caribbean.", "Its capital is Havana.", "Famous for its classic 1950s cars, cigars, and salsa music.", "It is one of the world's remaining socialist states.", "Spanish is the official language."] },
+            { country: "Netherlands", clues: ["A low-lying country in Western Europe.", "Its capital is Amsterdam.", "Famous for its windmills, tulips, and canals.", "Known for painters like Rembrandt and Van Gogh.", "Large parts of the country are below sea level, protected by dikes."] },
+            { country: "South Korea", clues: ["A country in East Asia, on the southern half of a peninsula.", "Its capital is Seoul.", "Famous for K-Pop (like BTS), Samsung, and Kimchi.", "It has a highly advanced technology sector.", "It borders a heavily militarized demilitarized zone (DMZ)."] },
+            { country: "Iceland", clues: ["An island nation in the North Atlantic.", "Its capital is Reykjavik.", "Known as the 'Land of Fire and Ice' (volcanoes and glaciers).", "Famous for the Blue Lagoon and the Northern Lights.", "Its language is very close to Old Norse."] }
+        ];
+    </script>
+
+    <!-- 
+      --- GAME LOGIC SCRIPT ---
+      This block contains the game's core logic.
+    -->
+    <script>
+        // --- DOM Elements ---
+        const screens = {
+            start: document.getElementById('start-screen'),
+            game: document.getElementById('game-screen'),
+            end: document.getElementById('end-screen')
+        };
+        
+        const startBtn = document.getElementById('start-btn');
+        const rematchBtn = document.getElementById('rematch-btn');
+        
+        const clueList = document.getElementById('clue-list');
+        const guessForm = document.getElementById('guess-form');
+        const guessInput = document.getElementById('guess-input');
+        const guessBtn = document.getElementById('guess-btn');
+        const chancesValue = document.getElementById('chances-value');
+        const currentScoreValue = document.getElementById('current-score-value');
+        const messageArea = document.getElementById('message-area');
+
+        const highScoreValue = document.getElementById('high-score-value');
+        const startTrophy = document.getElementById('start-trophy');
+        
+        const endTitle = document.getElementById('end-title');
+        const endScoreValue = document.getElementById('end-score-value');
+        const endHighScoreValue = document.getElementById('end-high-score-value');
+        const endTrophy = document.getElementById('end-trophy');
+        const correctAnswerText = document.getElementById('correct-answer-text');
+
+        // --- Game State ---
+        let currentCountry = null;
+        let guessesLeft = 3;
+        let currentScore = 0;
+        let highScore = 0;
+        let availableCountries = []; // Will be populated from countriesData
+
+        // --- Functions ---
+
+        /**
+         * Switches the active screen
+         * @param {string} screenName - 'start', 'game', or 'end'
+         */
+        function showScreen(screenName) {
+            screens.start.classList.remove('active');
+            screens.game.classList.remove('active');
+            screens.end.classList.remove('active');
+            screens[screenName].classList.add('active');
+        }
+
+        /**
+         * Loads high score from localStorage and displays it
+         */
+        function loadHighScore() {
+            highScore = parseInt(localStorage.getItem('guessIn5HighScore') || '0');
+            highScoreValue.textContent = highScore;
+            endHighScoreValue.textContent = highScore;
+            
+            if (highScore > 0) {
+                startTrophy.style.display = 'block';
+                endTrophy.style.display = 'block';
+            } else {
+                startTrophy.style.display = 'none';
+                endTrophy.style.display = 'none';
+            }
+        }
+
+        /**
+         * Initializes the game, called on load
+         */
+        function initGame() {
+            loadHighScore();
+            showScreen('start');
+        }
+
+        /**
+         * Starts a new game session (called by Start and Rematch buttons)
+         */
+        function startGame() {
+            // Reset game session
+            currentScore = 0;
+            currentScoreValue.textContent = currentScore;
+            availableCountries = [...countriesData]; // Reset the list of countries
+            
+            loadNextQuestion();
+            showScreen('game');
+        }
+
+        /**
+         * Loads the next question (country)
+         */
+        function loadNextQuestion() {
+            // Reset round state
+            guessesLeft = 3;
+            guessInput.value = '';
+            guessInput.disabled = false;
+            guessBtn.disabled = false;
+            messageArea.textContent = '';
+            messageArea.className = '';
+            clueList.innerHTML = '';
+            chancesValue.textContent = guessesLeft;
+
+            // If we've used all countries, reset the list
+            if (availableCountries.length === 0) {
+                availableCountries = [...countriesData];
+            }
+
+            // Pick a random country and remove it from the available list
+            const countryIndex = Math.floor(Math.random() * availableCountries.length);
+            currentCountry = availableCountries.splice(countryIndex, 1)[0];
+
+            // Display clues
+            currentCountry.clues.forEach((clue, index) => {
+                const li = document.createElement('li');
+                li.textContent = clue;
+                clueList.appendChild(li);
+                // Use a tiny timeout to allow the element to be in the DOM
+                // before adding the 'visible' class, triggering the animation.
+                setTimeout(() => {
+                    li.classList.add('visible');
+                }, 10 * (index + 1));
+            });
+        }
+
+        /**
+         * Handles the user's guess
+         */
+        function handleGuess() {
+            const userGuess = guessInput.value.trim().toLowerCase();
+            const correctAnswer = currentCountry.country.toLowerCase();
+
+            if (!userGuess) return; // Ignore empty guesses
+
+            if (userGuess === correctAnswer) {
+                // --- WIN ---
+                let roundScore = 0;
+                if (guessesLeft === 3) roundScore = 100;
+                else if (guessesLeft === 2) roundScore = 50;
+                else if (guessesLeft === 1) roundScore = 25;
+                
+                currentScore += roundScore;
+                currentScoreValue.textContent = currentScore;
+
+                messageArea.textContent = `Correct! +${roundScore} points. Loading next round...`;
+                messageArea.className = 'message-correct';
+                guessInput.disabled = true;
+                guessBtn.disabled = true;
+                
+                // Wait 2 seconds, then load the next question
+                setTimeout(loadNextQuestion, 2000);
+
+            } else {
+                // --- WRONG ---
+                guessesLeft--;
+                chancesValue.textContent = guessesLeft;
+                guessInput.value = ''; // Clear input
+                
+                if (guessesLeft === 0) {
+                    // --- LOSE (End Game) ---
+                    endGame();
+                } else {
+                    // --- TRY AGAIN ---
+                    messageArea.textContent = "That's not it. Try again!";
+                    messageArea.className = 'message-wrong';
+                }
+            }
+        }
+
+        /**
+         * Ends the game and shows the final screen
+         */
+        function endGame() {
+            endTitle.textContent = "Game Over!";
+            correctAnswerText.textContent = `The correct country was: ${currentCountry.country}`;
+            endScoreValue.textContent = currentScore; // Show final total score
+
+            // Check for new high score
+            if (currentScore > highScore) {
+                highScore = currentScore;
+                localStorage.setItem('guessIn5HighScore', highScore);
+                loadHighScore(); // Update display on all screens
+            }
+            
+            showScreen('end');
+            showConfetti(); // --- Add this call ---
+        }
+
+        /**
+         * Creates a confetti effect
+         */
+        function showConfetti() {
+            const confettiCount = 100;
+            const colors = ['#e94560', '#f9ed69', '#33ff99', '#ffffff', '#16213e'];
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Add different shapes
+                if (Math.random() > 0.5) {
+                    confetti.style.width = '5px';
+                    confetti.style.height = '15px'; // rectangle
+                } else {
+                    confetti.style.borderRadius = '50%'; // circle
+                }
+
+                document.body.appendChild(confetti);
+
+                // Clean up DOM
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('load', initGame);
+        startBtn.addEventListener('click', startGame);
+        rematchBtn.addEventListener('click', startGame);
+        
+        guessForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent form from reloading page
+            handleGuess();
+        });
+
+    </script>
+</body>
+</html>
